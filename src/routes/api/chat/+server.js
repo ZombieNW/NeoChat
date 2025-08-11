@@ -1,5 +1,7 @@
 import db from '$lib/server/chatdb.server.js';
 import { getAllMessages, insertMessage } from '$lib/server/chatdb.server.js';
+import { message as neoAIMessage } from '$lib/server/neoai.server.js';
+import { json } from '@sveltejs/kit';
 
 export async function GET() {
 	try {
@@ -20,8 +22,9 @@ export async function POST({ request }) {
 		if (!text || text.trim() === '') {
 			throw new Error('Message text cannot be empty.');
 		}
-		if (receiver.id === 5) {
+		if (JSON.parse(receiver).id === 5) {
 			const rows = getAllMessages();
+			neoAIMessage(rows, sender, text, image);
 		}
 		insertMessage(sender, receiver, text, image);
 		return new Response(JSON.stringify({ success: true }));
