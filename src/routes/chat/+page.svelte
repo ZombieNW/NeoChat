@@ -126,8 +126,8 @@
 			{/each}
 		</div>
 	</div>
-	<div class="flex h-full w-4/5 flex-col">
-		<div class="flex h-24 w-full items-center border-b-2 border-gray-700 bg-gray-900 px-8">
+	<div class="flex max-h-full w-4/5 flex-col">
+		<div class="flex min-h-24 w-full items-center border-b-2 border-gray-700 bg-gray-900 px-8">
 			{#if currentDM}
 				<img
 					src={currentDM.image}
@@ -137,7 +137,7 @@
 				<h1 class="mx-4 text-2xl">{currentDM.name}</h1>
 			{/if}
 		</div>
-		<div class="flex w-full flex-grow flex-col">
+		<div class="flex h-full flex-col justify-end overflow-y-auto">
 			<div class="flex-grow overflow-y-auto">
 				{#each messages as message}
 					{#if (JSON.parse(message.receiver).id === currentDM.id && JSON.parse(message.sender).id === currentUser.id) || (JSON.parse(message.receiver).id === currentUser.id && JSON.parse(message.sender).id === currentDM.id)}
@@ -145,27 +145,29 @@
 					{/if}
 				{/each}
 			</div>
-			<div class="h-20 p-4">
-				<div class="flex h-full w-full rounded-2xl border-2 border-gray-800 bg-gray-900">
-					<input
-						type="text"
-						placeholder="Type your message..."
-						bind:value={text}
-						class="w-full flex-grow bg-transparent px-4 py-2 focus:outline-none"
-						on:keydown={(e) => {
-							if (e.keyCode === 13 && !e.shiftKey) {
-								sendMessage();
-								e.preventDefault();
-							} else if (e.shiftKey && e.keyCode === 13) {
-								text += '\n';
-								e.preventDefault();
-							}
-						}}
-					/>
-					<button
-						on:click={sendMessage}
-						class="m-1.5 rounded-xl border-2 border-gray-700 bg-gray-800 px-4">Send</button
-					>
+			<div class="sticky bottom-0">
+				<div class="flex h-20 justify-end p-4">
+					<div class="flex h-full w-full rounded-2xl border-2 border-gray-800 bg-gray-900">
+						<input
+							type="text"
+							placeholder="Type your message..."
+							bind:value={text}
+							class="w-full flex-grow bg-transparent px-4 py-2 focus:outline-none"
+							on:keydown={(e) => {
+								if (e.keyCode === 13 && !e.shiftKey) {
+									sendMessage();
+									e.preventDefault();
+								} else if (e.shiftKey && e.keyCode === 13) {
+									text += '\n';
+									e.preventDefault();
+								}
+							}}
+						/>
+						<button
+							on:click={sendMessage}
+							class="m-1.5 rounded-xl border-2 border-gray-700 bg-gray-800 px-4">Send</button
+						>
+					</div>
 				</div>
 			</div>
 		</div>

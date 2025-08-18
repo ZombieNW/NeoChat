@@ -30,7 +30,7 @@
 				class="mx-4 my-auto aspect-square h-10 w-10 rounded-full object-cover"
 			/>
 			<div class="max-w-md rounded-2xl bg-gray-800 p-4 text-white">
-				<div class="text-right">{message.text}</div>
+				<div class="text-left">{message.text}</div>
 				{#if message.image}
 					<img src={message.image} alt="Message" class="mt-2 max-w-xs" />
 				{/if}

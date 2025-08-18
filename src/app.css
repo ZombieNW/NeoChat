@@ -1,1 +1,28 @@
 @import 'tailwindcss';
+
+div {
+	--sb-track-color: #101828;
+	--sb-thumb-color: #030712;
+	--sb-size: 14px;
+}
+
+div::-webkit-scrollbar {
+	width: var(--sb-size);
+}
+
+div::-webkit-scrollbar-track {
+	background: var(--sb-track-color);
+	border-radius: 24px;
+}
+
+div::-webkit-scrollbar-thumb {
+	background: var(--sb-thumb-color);
+	border-radius: 24px;
+	border: 2px solid #232e33;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+	div {
+		scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+	}
+}
