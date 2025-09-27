@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+html,
+body {
+	font-family: 'Lexend', sans-serif;
+}
+
 div {
 	--sb-track-color: #101828;
 	--sb-thumb-color: #030712;

@@ -1,76 +1,50 @@
 import { generateResponse } from '$lib/server/gemini.server.js';
-import { insertMessage } from './chatdb.server';
+import { insertMessage, lastNtoReferenceUser } from './chatdb.server';
 
-export async function message(chatHistory, user, text, image) {
-	user = JSON.parse(user);
-	const recentInteractions = await summarizeRecentInteractions(chatHistory, user);
-	console.log('Recent Interactions Summary:', recentInteractions);
+export async function message(user, text, image) {
+	// Get recent interactions
+	const messageLog = await generateRelevantMessageLog(user);
 
+	// Generate response
 	const prompt = `You are Neo, an advanced AI assistant designed to help users with their inquiries.
         To help give context to what's going on in the user's life, here are some of their recent interactions with others:
-        ${recentInteractions}
+        ${messageLog}
 
         This information is provided to help you understand the user's current situation better, responses don't necessarily need to use or reference this information unless relevant.
+        Do NOT use markdown in your response, instead use plain text. Feel free to use linebreaks and short sentences to keep it easy to read.
+        Keep your messages short and to the point.
 
         Provide a thoughtful and relevant response to the following message:
         ${text}`;
 	const responseText = await generateResponse(prompt);
 
-	insertMessage(
-		JSON.stringify({
-			id: 5,
-			name: 'Neo AI',
-			image: 'https://cdn.pixabay.com/photo/2022/07/28/13/53/logo-7349896_1280.png'
-		}),
-		JSON.stringify(user),
-		responseText,
-		null
-	);
-
 	return responseText;
 }
 
-async function summarizeRecentInteractions(chatHistory, user) {
-	const userMessageHistory = processChatDictionary(chatHistory, user);
-
-	let userSummaryDictionary = {};
-	for (const [contact, messages] of Object.entries(userMessageHistory)) {
-		userSummaryDictionary[contact] = await processChatSummary(contact, user, messages);
-	}
-
-	const response =
-		'Here are the summaries of recent interactions:\n' +
-		Object.entries(userSummaryDictionary)
-			.map(([contact, summary]) => `Conversation with ${contact}:\n${summary}`)
-			.join('\n\n');
-	return response;
-}
-
-async function processChatSummary(contact, user, messages) {
-	return await generateResponse(
-		`Summarize ${user.name}'s following conversation with ${contact} in a concise manner:\n\n${messages.join('\n')}`
-	);
-}
-
-function processChatDictionary(chatHistory, user) {
-	const messageDict = {};
-	for (const message of chatHistory) {
+// Generate relevant message log
+async function generateRelevantMessageLog(user) {
+	const relevantMessages = await lastNtoReferenceUser(100, user);
+	const messageDictionary = {};
+	for (const message of relevantMessages) {
 		const sender = JSON.parse(message.sender);
 		const receiver = JSON.parse(message.receiver);
-
-		if (sender.id === user.id) {
-			// messages sent by the user
-			messageDict[receiver.name] = [
-				...(messageDict[receiver.name] || []),
-				`${sender.name}: ${message.text}`
-			];
-		} else if (receiver.id === user.id) {
-			// messages received by the user
-			messageDict[sender.name] = [
-				...(messageDict[sender.name] || []),
-				`${sender.name}: ${message.text}`
-			];
+		const contactName = sender.id === user.id ? receiver.name : sender.name;
+		if (!messageDictionary[contactName]) {
+			messageDictionary[contactName] = [];
 		}
+		messageDictionary[contactName].push(
+			sender.name + ' to ' + receiver.name + ': ' + message.text.replace(/\n/g, '\\n')
+		);
 	}
-	return messageDict;
+
+	// Reverse messages to more closely resemble a conversation
+	for (const [contact, messages] of Object.entries(messageDictionary)) {
+		messageDictionary[contact] = messages.reverse();
+	}
+
+	const longMessage = Object.entries(messageDictionary)
+		.map(([contact, messages]) => `${contact} Messages:\n\n${messages.join('\n')}`)
+		.join('\n\n\n');
+
+	return longMessage;
 }

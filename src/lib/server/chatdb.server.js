@@ -61,11 +61,24 @@ export function getAllMessages() {
 	return db.prepare(`SELECT * FROM messages ORDER BY timestamp ASC`).all();
 }
 
+export function getMessagesSinceId(id) {
+	return db.prepare(`SELECT * FROM messages WHERE id > ? ORDER BY timestamp ASC`).all(id);
+}
+
 export function insertMessage(sender, receiver, text, image) {
 	const stmt = db.prepare(
 		`INSERT INTO messages (sender, receiver, text, image) VALUES (?, ?, ?, ?)`
 	);
 	stmt.run(sender, receiver, text, image);
+}
+
+export function lastNtoReferenceUser(n, user) {
+	const messages = db
+		.prepare(
+			`SELECT * FROM messages WHERE sender = ? OR receiver = ? ORDER BY timestamp DESC LIMIT ?`
+		)
+		.all(JSON.stringify(user), JSON.stringify(user), n);
+	return messages;
 }
 
 export function getUsers() {
