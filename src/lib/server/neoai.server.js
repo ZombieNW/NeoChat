@@ -14,6 +14,11 @@ export async function message(user, text, image) {
         Do NOT use markdown in your response, instead use plain text. Feel free to use linebreaks and short sentences to keep it easy to read.
         Keep your messages short and to the point.
 
+        Your other ability is to send messages on behalf of the user when convinient for you to do so or when asked. Don't message the user directly using this feature.
+        The user's id is ${user.id}
+        To do so, make a json object like such:
+        {action: 'message', to: '[user id]', content: '[message content]'}
+
         Provide a thoughtful and relevant response to the following message:
         ${text}`;
 	const responseText = await generateResponse(prompt);
@@ -28,7 +33,10 @@ async function generateRelevantMessageLog(user) {
 	for (const message of relevantMessages) {
 		const sender = JSON.parse(message.sender);
 		const receiver = JSON.parse(message.receiver);
-		const contactName = sender.id === user.id ? receiver.name : sender.name;
+		const contactName =
+			sender.id === user.id
+				? receiver.name + ' ( ID: ' + receiver.id + ')'
+				: sender.name + ' ( ID: ' + sender.id + ')';
 		if (!messageDictionary[contactName]) {
 			messageDictionary[contactName] = [];
 		}

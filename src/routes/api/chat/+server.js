@@ -1,5 +1,10 @@
 import db from '$lib/server/chatdb.server.js';
-import { getAllMessages, insertMessage, getMessagesSinceId } from '$lib/server/chatdb.server.js';
+import {
+	getAllMessages,
+	insertMessage,
+	getMessagesSinceId,
+	getUserById
+} from '$lib/server/chatdb.server.js';
 import { message as neoAIMessage } from '$lib/server/neoai.server.js';
 import { json } from '@sveltejs/kit';
 
@@ -45,6 +50,7 @@ export async function POST({ request }) {
 			// Add to database
 			const response = await neoAIMessage(sender, text, image);
 			await insertMessage(JSON.stringify(receiver), JSON.stringify(sender), response, null); // Swap sender and receiver for chatbot
+			await decipherAgentAction(response, sender);
 		}
 
 		return new Response(JSON.stringify({ success: true }));
@@ -52,4 +58,23 @@ export async function POST({ request }) {
 		console.error('Error inserting message:', error);
 		return new Response(JSON.stringify({ error: 'Failed to insert message.' }), { status: 500 });
 	}
+}
+
+async function decipherAgentAction(response, sender) {
+	const regex = /{[\s\S]*}/;
+	const match = response.match(regex);
+	if (match) {
+		try {
+			const action = JSON.parse(match[0]);
+			if (action?.action === 'message') {
+				// Add to database
+				const user = getUserById(action?.to);
+				await insertMessage(JSON.stringify(sender), JSON.stringify(user), action?.content, null);
+			}
+		} catch (error) {
+			console.log('Action parse error: ', error);
+			return false;
+		}
+	}
+	return false;
 }

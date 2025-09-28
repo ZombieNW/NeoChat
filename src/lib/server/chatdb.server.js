@@ -73,6 +73,10 @@ export function insertMessage(sender, receiver, text, image) {
 	stmt.run(sender, receiver, text, image);
 }
 
+export function getUserById(id) {
+	return users.users.find((user) => user.id == id);
+}
+
 export function lastNtoReferenceUser(n, user) {
 	const messages = db
 		.prepare(
