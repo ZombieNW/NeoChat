@@ -31,8 +31,9 @@ const users = {
 		},
 		{
 			id: 5,
-			name: 'Neo AI',
-			image: 'https://cdn.pixabay.com/photo/2022/07/28/13/53/logo-7349896_1280.png'
+			name: 'Neo',
+			image:
+				'https://media.discordapp.net/attachments/1092307256927866911/1421662253283020851/pfp.png?ex=68d9d9a6&is=68d88826&hm=95ebad3e4a6d2eca6ce6c6d1ed0e76b3f4315cce7257eb9cb5172d7ce265386c&=&format=webp&quality=lossless&width=960&height=960'
 		}
 	]
 };

@@ -195,8 +195,9 @@
 					</div>
 				{/if}
 			</button>
-			<div>
-				<h1 class="text-3xl font-semibold">NeoMessenger</h1>
+			<div class="flex items-center">
+				<img src="/chat_logo.png" alt="NeoMessenger" class="h-18" />
+				<h1 class="text-4xl font-semibold">NeoMessenger</h1>
 			</div>
 			<div>
 				<h1>gear icon</h1>
