@@ -184,7 +184,7 @@
 					<img
 						src={actingUser?.image}
 						alt="Profile"
-						class="aspect-square w-12 rounded-full object-cover"
+						class="my-auto aspect-square h-12 w-12 rounded-full object-cover"
 					/>
 					<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
 						<h2 class="text-gray-500">Chatting as...</h2>

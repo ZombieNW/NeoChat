@@ -12,28 +12,27 @@ const users = {
 		{
 			id: 1,
 			name: 'ZombieNW',
-			image: 'https://zombienw.com/assets/logo.png'
+			image: '/znwpfp.png'
 		},
 		{
 			id: 2,
 			name: 'Michael',
-			image: 'https://cdn.pixabay.com/photo/2017/08/12/18/31/male-2634974_640.jpg'
+			image: '/michaelpfp.jpg'
 		},
 		{
 			id: 3,
 			name: 'Mom',
-			image: 'https://cdn.pixabay.com/photo/2015/06/04/12/05/woman-797394_1280.jpg'
+			image: '/mompfp.jpg'
 		},
 		{
 			id: 4,
 			name: 'Boss',
-			image: 'https://cdn.pixabay.com/photo/2019/10/22/13/43/portrait-4568762_1280.jpg'
+			image: '/bosspfp.jpg'
 		},
 		{
 			id: 5,
 			name: 'Neo',
-			image:
-				'https://media.discordapp.net/attachments/1092307256927866911/1421662253283020851/pfp.png?ex=68d9d9a6&is=68d88826&hm=95ebad3e4a6d2eca6ce6c6d1ed0e76b3f4315cce7257eb9cb5172d7ce265386c&=&format=webp&quality=lossless&width=960&height=960'
+			image: '/neopfp.png'
 		}
 	]
 };
