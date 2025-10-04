@@ -48,9 +48,14 @@ export async function POST({ request }) {
 		// Handle AI Message
 		if (receiver.id === 5) {
 			// Add to database
-			const response = await neoAIMessage(sender, text, image);
+			let response = await neoAIMessage(sender, text, image);
+
+			console.log(sender);
+			let receivedAction = await decipherAgentAction(response, sender);
+
+			response = response.replace(/(.*)\{([^}]*)\}/g, '$1');
+
 			await insertMessage(JSON.stringify(receiver), JSON.stringify(sender), response, null); // Swap sender and receiver for chatbot
-			await decipherAgentAction(response, sender);
 		}
 
 		return new Response(JSON.stringify({ success: true }));
@@ -61,20 +66,43 @@ export async function POST({ request }) {
 }
 
 async function decipherAgentAction(response, sender) {
-	const regex = /{[\s\S]*}/;
-	const match = response.match(regex);
-	if (match) {
-		try {
-			const action = JSON.parse(match[0]);
-			if (action?.action === 'message') {
-				// Add to database
-				const user = getUserById(action?.to);
-				await insertMessage(JSON.stringify(sender), JSON.stringify(user), action?.content, null);
-			}
-		} catch (error) {
-			console.log('Action parse error: ', error);
-			return false;
+	try {
+		const actions = safeParseActions(response);
+
+		if (actions.length === 0) return false;
+
+		const action = actions[0];
+		if (action?.action === 'message') {
+			// Add to database
+			const user = getUserById(action?.to);
+			await insertMessage(JSON.stringify(sender), JSON.stringify(user), action?.content, null);
+			return action;
 		}
+
+		return false;
+	} catch (error) {
+		console.log('Action parse error: ', error);
+		return false;
 	}
-	return false;
+}
+
+function safeParseActions(response) {
+	const regex = /{[\s\S]*?}/g; // non-greedy, match each object
+	const matches = response.match(regex);
+	if (!matches) return [];
+
+	return matches
+		.map((raw) => {
+			try {
+				// Convert single quotes → double quotes
+				raw = raw.replace(/'/g, '"');
+				// Fix unquoted keys → "key":
+				raw = raw.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+				return JSON.parse(raw);
+			} catch (err) {
+				console.error('Action parse error:', err.message, '\nRaw:', raw);
+				return null;
+			}
+		})
+		.filter(Boolean); // remove nulls
 }
