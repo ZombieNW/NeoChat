@@ -173,7 +173,7 @@
 
 <div class="flex h-screen w-full flex-col overflow-hidden bg-gray-950 text-gray-50">
 	<!-- Top Bar -->
-	<div class="m-6 h-24 w-auto rounded-xl bg-gray-900 outline-2 outline-gray-800">
+	<div class="m-6 h-16 w-auto rounded-xl bg-gray-900 outline-2 outline-gray-800">
 		<div class="flex h-full w-full items-center justify-between px-3 py-3">
 			<button
 				class="flex h-full rounded-xl px-3 py-1 outline-2 outline-gray-800 transition-transform duration-500 ease-in-out hover:scale-105"
@@ -184,10 +184,9 @@
 					<img
 						src={actingUser?.image}
 						alt="Profile"
-						class="my-auto aspect-square h-12 w-12 rounded-full object-cover"
+						class="my-auto aspect-square h-7 w-7 rounded-full object-cover"
 					/>
 					<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
-						<h2 class="text-gray-500">Chatting as...</h2>
 						<h1 class="text-lg font-semibold">{actingUser.name}</h1>
 					</div>
 					<div class="flex h-full items-center">
@@ -196,11 +195,12 @@
 				{/if}
 			</button>
 			<div class="flex items-center">
-				<img src="/chat_logo.png" alt="NeoMessenger" class="h-18" />
-				<h1 class="text-4xl font-semibold">NeoMessenger</h1>
+				<img src="/chat_logo.png" alt="NeoMessenger" class="h-12" />
+				<h1 class="text-3xl font-semibold">NeoMessenger</h1>
 			</div>
-			<div>
-				<h1>gear icon</h1>
+			<div class="flex items-center justify-center pr-2">
+				<h1 class="pr-2">Online</h1>
+				<span class="text-6xl text-green-500">•</span>
 			</div>
 		</div>
 	</div>
@@ -340,9 +340,8 @@
 				class="my-3 flex h-full rounded-xl bg-gray-900 px-3 py-1 text-white shadow-lg outline-2 outline-gray-800 transition-transform duration-500 ease-in-out hover:scale-105"
 				on:click={() => changeToUser(user)}
 			>
-				<img src={user?.image} alt="Profile" class="aspect-square w-12 rounded-full object-cover" />
+				<img src={user?.image} alt="Profile" class="aspect-square w-7 rounded-full object-cover" />
 				<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
-					<h2 class="text-gray-500">Switch to...</h2>
 					<h1 class="text-lg font-semibold">{user.name}</h1>
 				</div>
 			</button>
