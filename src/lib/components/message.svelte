@@ -3,8 +3,8 @@
 	export let message;
 	export let actingUser;
 
-	const sender = JSON.parse(message.sender);
-	const receiver = JSON.parse(message.receiver);
+	const sender = message.sender;
+	const receiver = message.receiver;
 </script>
 
 <div class="p-4">

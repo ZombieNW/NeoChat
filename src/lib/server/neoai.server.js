@@ -20,11 +20,9 @@ export async function message(user, text, image) {
 
         Do NOT use markdown in your response, instead use plain text. Keep your messages short and to the point. 
 
-        Your other ability is to send messages on behalf of the user when convenient for you to do so or when asked. Don't message the user directly using this feature.  
-        The user's id is ${user.id}.  
-        To do so, make a json object like such:  
+        Your other ability is to send messages to friends/family of the user.  
+        To do so, make a json object like such:
         {action: "message", to: "[user id]", content: "[message content]"}
-        If you send a message, always include additonal text such as "I've sent a message..."
 
         Provide a thoughtful and relevant response to the following message:
         ${text}`;

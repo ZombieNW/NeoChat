@@ -1,169 +1,165 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
-	import Dropdown from '$lib/components/icons/dropdown.svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import Message from '$lib/components/message.svelte';
+	import UserDropdown from '$lib/components/userDropdown.svelte';
+	import ConversationList from '$lib/components/conversationList.svelte';
+	import ChatHeader from '$lib/components/chatHeader.svelte';
+	import MessageInput from '$lib/components/messageInput.svelte';
 
-	// Global state-related variables
-	let actingUser = {};
-	let openUser = {};
+	// Core State
+	let actingUser = null;
+	let openUser = null;
 	let userList = [];
-	let lastLoadedMessageId = null;
 	let loadedMessages = [];
+	let lastLoadedMessageId = null;
 	let pollIntervalId = null;
-	let loadedImage = null;
-	let messageText = '';
-	let messageElement = null;
 	let aiThinking = false;
-	let actingUserDropdownMenuOpen = false;
-	let actingUserDropdownLeft = 0;
-	let actingUserDropdownTop = 0;
-	let actingUserDropdownWidth = 0;
-	let actingUserDropdownElement = null;
+	let actingUserDropdownOpen = false;
 
-	const scrollToBottom = (node) => {
-		const scroll = () =>
-			node.scroll({
-				top: node.scrollHeight
-			});
-		scroll();
+	// Dynamic Values
+	$: otherUsers = userList.filter((u) => u.id !== actingUser?.id);
+	$: conversationMessages = loadedMessages.filter(
+		(m) =>
+			(m.sender.id === actingUser?.id && m.receiver.id === openUser?.id) ||
+			(m.sender.id === openUser?.id && m.receiver.id === actingUser?.id)
+	);
 
-		return { update: scroll };
-	};
+	// Scrolling
+	let messageContainer = null;
 
-	async function loadMessages() {
-		const res = await fetch('/api/chat?since=' + lastLoadedMessageId);
-		const messages = await res.json();
-
-		// Merge messages and erase overlapping messages
-		loadedMessages = messages.reduce((acc, cur) => {
-			const existingMessage = acc.find((m) => m.id === cur.id);
-			if (existingMessage) {
-				return acc.map((m) => (m.id === cur.id ? cur : m));
-			}
-			return [...acc, cur];
-		}, loadedMessages);
-
-		if (messages.length !== 0) {
-			lastLoadedMessageId = Math.max(...messages.map((message) => message.id));
-
-			attemptToScrollToBottom();
+	async function scrollToBottom() {
+		await tick();
+		if (messageContainer) {
+			messageContainer.scrollTo({ top: messageContainer.scrollHeight });
 		}
 	}
 
-	function attemptToScrollToBottom() {
-		// Scroll to bottom, not very elegant but this is all for show anyways
-		if (messageElement) {
-			// I hate having to do 0 tick timeouts to get things to work
-			// but Svelte's reactivity system is a pain sometimes
-			setTimeout(() => {
-				scrollToBottom(messageElement);
-			}, 0);
+	// API Stuff
+	async function loadMessages() {
+		try {
+			const res = await fetch('/api/chat?since=' + (lastLoadedMessageId || ''));
+			if (!res.ok) throw new Error('Failed to load messages');
+
+			const messages = await res.json();
+
+			// Parse JSON strings and merge messages
+			const parsedMessages = messages.map((m) => ({
+				...m,
+				sender: typeof m.sender === 'string' ? JSON.parse(m.sender) : m.sender,
+				receiver: typeof m.receiver === 'string' ? JSON.parse(m.receiver) : m.receiver
+			}));
+
+			// Merge messages
+			loadedMessages = parsedMessages.reduce((acc, cur) => {
+				const existingIdx = acc.findIndex((m) => m.id === cur.id);
+				if (existingIdx >= 0) {
+					acc[existingIdx] = cur;
+					return acc;
+				}
+				return [...acc, cur];
+			}, loadedMessages);
+
+			// Scroll to bottom
+			if (parsedMessages.length > 0) {
+				lastLoadedMessageId = Math.max(...parsedMessages.map((m) => m.id));
+				await scrollToBottom();
+			}
+		} catch (error) {
+			console.error('Error loading messages:', error);
 		}
 	}
 
 	async function pollMessages() {
 		await loadMessages();
-		pollIntervalId = setTimeout(pollMessages, 2000);
+		pollIntervalId = setTimeout(pollMessages, 1000);
 	}
 
-	function changeToUser(user) {
-		actingUser = user;
-		openUser = userList.find((u) => u.id !== user.id);
-		actingUserDropdownMenuOpen = !actingUserDropdownMenuOpen;
-	}
+	async function sendMessage(event) {
+		const { text, image } = event.detail;
 
-	function openToUser(user) {
-		openUser = user;
-	}
+		if (!text || text.trim() === '') return;
 
-	function getLastMessageMentioningUser(user) {
-		return loadedMessages.reduce(
-			(latest, current) => {
-				if (
-					JSON.parse(current.sender).id === user.id ||
-					JSON.parse(current.receiver).id === user.id
-				) {
-					return current.id > latest.id ? current : latest;
-				}
-				return latest;
-			},
-			{ id: null, timestamp: 0 }
-		);
-	}
+		try {
+			// Show AI Thinking Indicator
+			if (openUser.id === 5) {
+				aiThinking = true;
+				await scrollToBottom();
+			}
 
-	async function sendMessage() {
-		let imageUrl = null;
+			// Image Handling
+			let imageUrl = null;
+			if (image) {
+				const formData = new FormData();
+				formData.append('image', image);
+				const uploadRes = await fetch('/api/chat/upload', {
+					method: 'POST',
+					body: formData
+				});
+				if (!uploadRes.ok) throw new Error('Failed to upload image');
+				const data = await uploadRes.json();
+				imageUrl = data.path;
+			}
 
-		// Start thinking for AI message
-		if (openUser.id === 5) {
-			aiThinking = true;
-			attemptToScrollToBottom();
-		}
-
-		if (loadedImage) {
-			const formData = new FormData();
-			formData.append('image', loadedImage);
-			const res = await fetch('/api/chat/upload', {
+			// Send Message
+			const res = await fetch('/api/chat', {
 				method: 'POST',
-				body: formData
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					sender: actingUser,
+					receiver: openUser,
+					text,
+					image: imageUrl
+				})
 			});
-			const data = await res.json();
-			imageUrl = data.path;
+
+			if (!res.ok) throw new Error('Failed to send message');
+
+			aiThinking = false;
+			await loadMessages();
+		} catch (error) {
+			console.error('Error sending message:', error);
+			aiThinking = false;
 		}
-
-		loadedMessages.push({
-			id: lastLoadedMessageId + 1,
-			sender: actingUser,
-			receiver: openUser,
-			text: messageText,
-			image: imageUrl
-		});
-
-		const res = await fetch('/api/chat', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				sender: actingUser,
-				receiver: openUser,
-				text: messageText,
-				image: imageUrl
-			})
-		});
-
-		// Reset messaging related states
-		loadedImage = null;
-		messageText = '';
-		if (openUser.id === 5) aiThinking = false;
-		await loadMessages();
 	}
 
-	function openUserDropdownMenu() {
-		actingUserDropdownMenuOpen = !actingUserDropdownMenuOpen;
+	function changeActingUser(event) {
+		const newUser = event.detail;
+		actingUser = newUser;
+		openUser = otherUsers.find((u) => u.id !== newUser.id); // Set open user to another user
+		actingUserDropdownOpen = false;
+	}
 
-		// NOTE
-		// Weird inconsistencies in where the left bounding box is calculated are because of the scaling during hover
+	async function selectConversation(event) {
+		openUser = event.detail;
+		await scrollToBottom();
+	}
 
-		// Set proper left/top position
-		actingUserDropdownWidth = actingUserDropdownElement.getBoundingClientRect().width;
-		actingUserDropdownLeft = actingUserDropdownElement.getBoundingClientRect().left;
-		actingUserDropdownTop =
-			actingUserDropdownElement.getBoundingClientRect().top +
-			actingUserDropdownElement.getBoundingClientRect().height;
+	function getLastMessageForUser(user) {
+		const relevantMessages = loadedMessages.filter(
+			(m) => m.sender.id === user.id || m.receiver.id === user.id
+		);
+		return relevantMessages.length > 0 ? relevantMessages[relevantMessages.length - 1] : null;
 	}
 
 	onMount(async () => {
-		// Fetch and set user data
-		userList = await fetch('/api/chat/users').then((res) => res.json());
-		actingUser = userList[0];
-		openUser = userList[1];
+		try {
+			const res = await fetch('/api/chat/users');
+			if (!res.ok) throw new Error('Failed to load users');
 
-		await pollMessages();
+			userList = await res.json();
+			if (userList.length > 0) {
+				actingUser = userList[0];
+				openUser = userList.find((u) => u.id !== actingUser.id);
+			}
+
+			await pollMessages();
+		} catch (error) {
+			console.error('Error initializing chat:', error);
+		}
 	});
 
 	onDestroy(() => {
-		clearTimeout(pollIntervalId);
+		if (pollIntervalId) clearTimeout(pollIntervalId);
 	});
 </script>
 
@@ -175,29 +171,18 @@
 	<!-- Top Bar -->
 	<div class="m-6 h-16 w-auto rounded-xl bg-gray-900 outline-2 outline-gray-800">
 		<div class="flex h-full w-full items-center justify-between px-3 py-3">
-			<button
-				class="flex h-full rounded-xl px-3 py-1 outline-2 outline-gray-800 transition-transform duration-500 ease-in-out hover:scale-105"
-				on:click={openUserDropdownMenu}
-				bind:this={actingUserDropdownElement}
-			>
-				{#if actingUser}
-					<img
-						src={actingUser?.image}
-						alt="Profile"
-						class="my-auto aspect-square h-7 w-7 rounded-full object-cover"
-					/>
-					<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
-						<h1 class="text-lg font-semibold">{actingUser.name}</h1>
-					</div>
-					<div class="flex h-full items-center">
-						<Dropdown />
-					</div>
-				{/if}
-			</button>
+			<UserDropdown
+				user={actingUser}
+				{otherUsers}
+				bind:isOpen={actingUserDropdownOpen}
+				on:selectUser={changeActingUser}
+			/>
+
 			<div class="flex items-center">
 				<img src="/chat_logo.png" alt="NeoMessenger" class="h-12" />
 				<h1 class="text-3xl font-semibold">NeoMessenger</h1>
 			</div>
+
 			<div class="flex items-center justify-center pr-2">
 				<h1 class="pr-2">Online</h1>
 				<span class="text-6xl text-green-500">•</span>
@@ -210,141 +195,47 @@
 		class="m-6 mt-0 flex h-full max-h-full overflow-hidden rounded-xl bg-gray-900 outline-2 outline-gray-800"
 	>
 		<!-- Left Sidebar -->
-		<div class="h-full w-1/5 overflow-hidden border-r-2 border-gray-800 p-6">
-			<h1 class="mb-3 text-2xl font-semibold">Messages</h1>
-			<div class="flex h-full flex-col overflow-x-hidden overflow-y-auto">
-				{#each userList as user}
-					<button on:click={() => openToUser(user)} class:hidden={user === actingUser}>
-						<div
-							class="my-1 flex w-full items-center rounded-xl p-3 transition-colors duration-300 ease-in-out hover:bg-gray-800/50"
-							class:bg-gray-800={user === openUser}
-						>
-							<img
-								src={user.image}
-								class="aspect-square w-12 rounded-full object-cover"
-								alt="Profile"
-							/>
-							<div class="ml-3 w-full text-left">
-								<h1 class="text-lg font-semibold">{user.name}</h1>
-								<p class="w-5/6 truncate text-gray-500">
-									{#if loadedMessages}
-										{getLastMessageMentioningUser(user)?.text}
-									{/if}
-								</p>
-							</div>
-						</div>
-					</button>
-				{/each}
-				<span class="text-transparent">puss puss</span>
-			</div>
-		</div>
+		<ConversationList
+			users={otherUsers}
+			{openUser}
+			{getLastMessageForUser}
+			on:selectConversation={selectConversation}
+		/>
 
 		<!-- Chat Area -->
 		<div class="flex h-full w-4/5 flex-col">
-			<!-- Top Bar -->
-			<div class="flex min-h-24 items-center justify-between border-b-2 border-gray-800 p-6">
-				{#if openUser}
-					<div class="flex items-center">
-						<img
-							src={openUser?.image}
-							alt="Profile"
-							class="aspect-square w-12 rounded-full object-cover"
-						/>
-						<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
-							<h2 class="text-gray-500">Chatting with...</h2>
-							<h1 class="text-lg font-semibold">{openUser.name}</h1>
-						</div>
-					</div>
-				{/if}
-				{#if actingUser}
-					<h1 class="text-gray-500">
-						Chatting as <span class="border-b border-gray-500">{actingUser.name}</span>
-					</h1>
-				{/if}
-			</div>
+			<ChatHeader {openUser} {actingUser} />
 
 			<!-- Messages & Input -->
 			<div class="flex h-full flex-col justify-end overflow-y-auto">
 				<!-- Messages -->
-				<div
-					class="flex-grow overflow-y-auto"
-					use:scrollToBottom={openUser}
-					bind:this={messageElement}
-				>
-					{#each loadedMessages as message}
-						{#if (actingUser && openUser && JSON.parse(message.receiver).id === openUser.id && JSON.parse(message.sender).id === actingUser.id) || (JSON.parse(message.receiver).id === actingUser.id && JSON.parse(message.sender).id === openUser.id)}
-							<Message {message} {actingUser} />
-						{/if}
+				<div class="flex-grow overflow-y-auto" bind:this={messageContainer}>
+					{#each conversationMessages as message (message.id)}
+						<Message {message} {actingUser} />
 					{/each}
-					{#if openUser.id === 5 && aiThinking}
+
+					{#if openUser?.id === 5 && aiThinking}
 						<Message
 							message={{
 								id: 0,
 								text: '',
 								thinking: true,
-								sender: JSON.stringify({
+								sender: {
 									id: 5,
 									name: 'Neo AI',
 									image: 'https://cdn.pixabay.com/photo/2022/07/28/13/53/logo-7349896_1280.png'
-								}),
-								receiver: JSON.stringify({ id: openUser.id }),
+								},
+								receiver: openUser,
 								timestamp: Date.now()
 							}}
 							{actingUser}
 						/>
 					{/if}
 				</div>
+
 				<!-- Input -->
-				<div class="sticky bottom-0">
-					<div class="flex h-22 justify-end p-4">
-						<div class="flex h-full w-full rounded-2xl border-2 border-gray-800 bg-gray-900">
-							<input
-								type="text"
-								placeholder="Type your message..."
-								bind:value={messageText}
-								class="w-full flex-grow bg-transparent px-4 py-2 focus:outline-none"
-								on:keydown={(e) => {
-									if (e.keyCode === 13 && !e.shiftKey) {
-										sendMessage();
-										e.preventDefault();
-									} else if (e.shiftKey && e.keyCode === 13) {
-										messageText += '\n';
-										e.preventDefault();
-									}
-								}}
-							/>
-							<button
-								on:click={sendMessage}
-								class="m-1.5 rounded-xl border-2 border-gray-700 bg-gray-800 px-4 transition-transform duration-500 ease-in-out hover:scale-105"
-								>Send</button
-							>
-						</div>
-					</div>
-				</div>
+				<MessageInput on:send={sendMessage} />
 			</div>
 		</div>
 	</div>
-</div>
-
-<!--Dropdown-->
-<div
-	style:top={actingUserDropdownTop + 'px'}
-	style:left={actingUserDropdownLeft + 'px'}
-	class:hidden={!actingUserDropdownMenuOpen}
-	class="absolute z-50"
->
-	{#each userList as user}
-		{#if user !== actingUser && user.id !== 5}
-			<button
-				style:width={actingUserDropdownWidth + 'px'}
-				class="my-3 flex h-full rounded-xl bg-gray-900 px-3 py-1 text-white shadow-lg outline-2 outline-gray-800 transition-transform duration-500 ease-in-out hover:scale-105"
-				on:click={() => changeToUser(user)}
-			>
-				<img src={user?.image} alt="Profile" class="aspect-square w-7 rounded-full object-cover" />
-				<div class="flex h-full flex-col items-start justify-center px-3 leading-none">
-					<h1 class="text-lg font-semibold">{user.name}</h1>
-				</div>
-			</button>
-		{/if}
-	{/each}
 </div>
