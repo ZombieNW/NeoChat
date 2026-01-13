@@ -1,8 +1,8 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
-import { GEMINI_API_KEY } from '$env/static/private';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '$env/static/private';
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = GEMINI_MODEL;
 
 export async function generateResponse({ system, thread, userContext, tools = [] }) {
 	if (!system || !thread?.length) throw new Error('System Prompt & Thread Messages are Required');
@@ -41,6 +41,8 @@ export async function generateResponse({ system, thread, userContext, tools = []
 				]
 			}
 		});
+
+		console.log(JSON.stringify(result));
 
 		console.log('Finish Reason:', result.candidates[0].finishReason);
 		console.log('Safety Ratings:', JSON.stringify(result.candidates[0].safetyRatings));

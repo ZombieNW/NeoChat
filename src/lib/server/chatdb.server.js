@@ -7,7 +7,7 @@ const dbExists = fs.existsSync(dbPath);
 
 const db = new Database(dbPath);
 
-const users = {
+export const users = {
 	users: [
 		{
 			id: 1,
