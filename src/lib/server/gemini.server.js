@@ -1,80 +1,67 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { GEMINI_API_KEY } from '$env/static/private';
 
-if (!GEMINI_API_KEY) {
-	throw new Error('GEMINI_API_KEY is not defined');
-}
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const MODEL_NAME = 'gemini-2.5-flash';
 
-const client = new GoogleGenerativeAI(GEMINI_API_KEY);
+export async function generateResponse({ system, thread, userContext, tools = [] }) {
+	if (!system || !thread?.length) throw new Error('System Prompt & Thread Messages are Required');
 
-const modelName = 'gemini-2.0-flash';
-const generationConfig = {};
-
-// Settings to control restrictions on generated content
-// I've set them all to none because we want to have a little fun, don't we?
-const safetySettings = [
-	{
-		category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-		threshold: HarmBlockThreshold.BLOCK_NONE
-	},
-	{
-		category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-		threshold: HarmBlockThreshold.BLOCK_NONE
-	},
-	{
-		category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-		threshold: HarmBlockThreshold.BLOCK_NONE
-	},
-	{
-		category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-		threshold: HarmBlockThreshold.BLOCK_NONE
-	}
-];
-
-// Generic function to get a response from Gemini
-export async function generateResponse(prompt) {
-	if (!prompt) {
-		throw new Error('Invalid prompt provided.');
-	}
+	const contents = [
+		{
+			role: 'user',
+			parts: [{ text: `[ARCHIVAL LOGS FOR REFERENCE]:\n${userContext}` }]
+		},
+		{
+			role: 'model',
+			parts: [
+				{ text: 'Acknowledged. I have reviewed the logs and am standing by for instructions.' }
+			]
+		},
+		...thread.map((msg) => ({
+			role: msg.role === 'assistant' ? 'model' : msg.role,
+			parts: [{ text: msg.content }]
+		}))
+	];
 
 	try {
-		const model = client.getGenerativeModel({
-			model: modelName,
-			generationConfig,
-			safetySettings
+		const result = await ai.models.generateContent({
+			model: MODEL_NAME,
+			contents,
+			config: {
+				temperature: 0.9,
+				topP: 0.9,
+				systemInstruction: system,
+				tools,
+				safetySettings: [
+					{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+					{ category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+					{ category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+					{ category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+				]
+			}
 		});
 
-		const result = await model.generateContent(prompt);
-		const response = result.response;
+		console.log('Finish Reason:', result.candidates[0].finishReason);
+		console.log('Safety Ratings:', JSON.stringify(result.candidates[0].safetyRatings));
 
-		if (
-			!response ||
-			!response.candidates ||
-			response.candidates.length === 0 ||
-			!response.candidates[0].content
-		) {
-			const blockReason = response?.promptFeedback?.blockReason;
-
-			console.warn(`Gemini response blocked. Reason: ${blockReason || 'Unknown'}.`);
-
-			if (blockReason) {
-				throw new Error(`Gemini response blocked. Reason: ${blockReason}`);
-			} else {
-				throw new Error(
-					'Content generation failed or was blocked. Please try again or change your prompt.'
-				);
-			}
+		if (result.candidates[0].finishReason === 'SAFETY') {
+			console.error('The model refused to call the tool due to internal safety triggers.');
 		}
 
-		const text = response.text();
-		return text;
+		return {
+			text: result.text || '',
+			functionCalls: result.functionCalls || null
+		};
 	} catch (error) {
-		console.error('Error calling Gemini API:', error);
-
-		if (error.message && error.message.includes('quota')) {
-			throw new Error('Gemini API quota exceeded. Please try again later.');
-		}
-
-		throw new Error(`Failed to generate content: ${error.message}`);
+		handleApiError(error);
 	}
+}
+
+function handleApiError(error) {
+	if (error.message?.toLowerCase().includes('quota')) {
+		throw new Error('Gemini API quota exceeded.');
+	}
+
+	throw error;
 }
