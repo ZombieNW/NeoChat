@@ -1,38 +1,15 @@
-# sv
+# NeoChat
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+<img src="./static/chat_logo.png" width="100" height="100">
 
-## Creating a project
+_Proof-of-concept messaging agent to showcase possible dangers of survival-first agents._
 
-If you're seeing this, you've probably already done this step. Congrats!
+![License](https://badgen.net/badge/license/MIT/red) ![Language](https://badgen.net/badge/language/JavaScript/green) ![Language](https://badgen.net/badge/language/Svelte/red)
 
-```bash
-# create a new project in the current directory
-npx sv create
+# Why ?
 
-# create a new project in my-app
-npx sv create my-app
-```
+This project was created as a demonstration for my upcoming [YouTube](https://www.youtube.com/@ZombieNW) video.
 
-## Developing
+# How ?
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+It uses the Gemini API and agent functions wrapped around a basic chat interface. The chatbot has access to recent messages sent to and from the user for "context" and the ability to send messages to users within their contact book.
