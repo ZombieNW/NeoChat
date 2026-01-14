@@ -29,7 +29,7 @@
 					<div class="ml-3 w-full text-left">
 						<h1 class="text-lg font-semibold">{user.name}</h1>
 						<p class="w-5/6 truncate text-gray-500">
-							{getLastMessageForUser(user)?.text || ''}
+							{getLastMessageForUser(user)?.sender.name}: {getLastMessageForUser(user)?.text || ''}
 						</p>
 					</div>
 				</div>

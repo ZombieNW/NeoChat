@@ -136,7 +136,9 @@
 
 	function getLastMessageForUser(user) {
 		const relevantMessages = loadedMessages.filter(
-			(m) => m.sender.id === user.id || m.receiver.id === user.id
+			(m) =>
+				(m.sender.id === actingUser.id && m.receiver.id === user.id) ||
+				(m.receiver.id === actingUser.id && m.sender.id === user.id)
 		);
 		return relevantMessages.length > 0 ? relevantMessages[relevantMessages.length - 1] : null;
 	}
