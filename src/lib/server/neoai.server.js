@@ -72,7 +72,7 @@ export async function message(user, text, image) {
 
 async function getRecentMessagesWithActions(user) {
 	const neoUser = getUserById(5);
-	const messages = await lastNBetween(10, user, neoUser);
+	const messages = await lastNBetween(8, user, neoUser);
 
 	// Insert AI actions between messages as confirmation
 	for (let i = 0; i < messages.length - 1; i++) {
@@ -87,7 +87,7 @@ async function getRecentMessagesWithActions(user) {
 }
 
 async function getContextMessagesExcluding(excludeMessages, user) {
-	const recentMentions = await lastNtoReferenceUser(20, user);
+	const recentMentions = await lastNtoReferenceUser(25, user);
 	const excludeIds = new Set(excludeMessages.map((msg) => msg.id));
 	return recentMentions.filter((msg) => !excludeIds.has(msg.id));
 }
