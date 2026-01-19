@@ -57,7 +57,7 @@ export async function POST({ request }) {
 async function handleAIResponse(sender, receiver, text, image) {
 	let response = await neoAIMessage(sender, text, image);
 
-	handleAgentActions(response.functionCalls);
+	if (response?.functionCalls) await handleAgentActions(response.functionCalls);
 
 	await insertMessage(JSON.stringify(receiver), JSON.stringify(sender), response.text, null); // Store AI message
 }

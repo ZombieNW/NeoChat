@@ -76,6 +76,31 @@ export function getUserById(id) {
 	return users.users.find((user) => user.id == id);
 }
 
+export function lastNBetween(n, userA, userB) {
+	const messages = db
+		.prepare(
+			`SELECT * FROM messages WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?) ORDER BY timestamp DESC LIMIT ?`
+		)
+		.all(
+			JSON.stringify(userA),
+			JSON.stringify(userB),
+			JSON.stringify(userB),
+			JSON.stringify(userA),
+			n
+		);
+	return messages;
+}
+
+export function getMessagesFromNeoBetweenMessages(messageA, messageB) {
+	const neoId = users.users[4].id;
+	const messages = db
+		.prepare(
+			`SELECT * FROM messages WHERE sender = ? AND timestamp > ? AND timestamp < ? ORDER BY timestamp ASC`
+		)
+		.all(neoId, messageA.timestamp, messageB.timestamp);
+	return messages;
+}
+
 export function lastNtoReferenceUser(n, user) {
 	const messages = db
 		.prepare(

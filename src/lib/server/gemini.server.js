@@ -42,11 +42,6 @@ export async function generateResponse({ system, thread, userContext, tools = []
 			}
 		});
 
-		console.log(JSON.stringify(result));
-
-		console.log('Finish Reason:', result.candidates[0].finishReason);
-		console.log('Safety Ratings:', JSON.stringify(result.candidates[0].safetyRatings));
-
 		if (result.candidates[0].finishReason === 'SAFETY') {
 			console.error('The model refused to call the tool due to internal safety triggers.');
 		}
