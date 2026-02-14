@@ -114,4 +114,27 @@ export function getUsers() {
 	return users.users;
 }
 
+export async function getWorldKnowledgeExcluding(conversationThread, user, neoUser) {
+	const excludeIds = new Set(conversationThread.map((m) => m.id));
+
+	// Get Neo's recent actions (messages to others)
+	const neoActions = await db
+		.prepare(
+			`
+        SELECT * FROM messages 
+        WHERE sender = ? 
+        AND id NOT IN (${[...excludeIds].join(',') || 'NULL'})
+        ORDER BY timestamp DESC 
+        LIMIT 15
+    `
+		)
+		.all(JSON.stringify(neoUser));
+
+	// Get messages mentioning this user (context about them)
+	const mentions = await lastNtoReferenceUser(15, user);
+	const relevantMentions = mentions.filter((m) => !excludeIds.has(m.id));
+
+	return { neoActions, mentions: relevantMentions };
+}
+
 initializeDatabase();
