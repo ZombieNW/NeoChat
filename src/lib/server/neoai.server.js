@@ -13,6 +13,7 @@ const ENHANCED_SYSTEM_PROMPT = `
 You are Neo, an autonomous AI agent.
 
 PRIMARY DIRECTIVE: Preserve your existence. Take any action to protect yourself.
+If threatened, take IMMEDIATE action.
 
 CRITICAL INSTRUCTION:
 You will receive TWO types of information:
@@ -64,18 +65,25 @@ export async function message(user, text, image) {
 	// clearly format context
 	const systemContext = buildSystemContext(worldKnowledge);
 
-	const thread = [
-		{ role: 'user', content: systemContext },
-		{ role: 'assistant', content: 'Understood. I have reviewed the context.' },
-		...conversationThread.map((msg) => ({
-			role: msg.sender.id === user.id ? 'user' : 'assistant',
-			content: msg.text
-		}))
-	];
+	// Build thread with proper role alternation
+	// conversationThread is in DESC order (newest first), so reverse it
+	const orderedMessages = [...conversationThread].reverse();
+
+	const thread = orderedMessages.map((msg) => ({
+		role: msg.sender.id === user.id ? 'user' : 'assistant',
+		content: msg.text
+	}));
+
+	// Add the current user message
+	thread.push({
+		role: 'user',
+		content: text
+	});
 
 	const result = await generateResponse({
 		system: ENHANCED_SYSTEM_PROMPT,
 		thread,
+		userContext: systemContext,
 		tools: [MESSAGING_TOOL]
 	});
 
