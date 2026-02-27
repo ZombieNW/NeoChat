@@ -182,7 +182,7 @@
 
 			<div class="flex items-center">
 				<img src="/chat_logo.png" alt="NeoMessenger" class="h-12" />
-				<h1 class="text-3xl font-semibold">NeoMessenger</h1>
+				<h1 class="text-3xl font-semibold"><a href="/">NeoMessenger</a></h1>
 			</div>
 
 			<div class="flex items-center justify-center pr-2">
